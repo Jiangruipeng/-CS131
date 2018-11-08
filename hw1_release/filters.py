@@ -29,7 +29,20 @@ def conv_nested(image, kernel):
     out = np.zeros((Hi, Wi))
 
     ### YOUR CODE HERE
-    pass
+    pad_height=int((Hk-1)/2)
+    pad_width=int((Wk-1)/2)
+    image_pad = zero_pad(image,pad_height,pad_width)
+    for hi in range(Hi):
+        for wi in range(Wi):
+            val_s = 0
+            for hk in range(Hk):
+                for wk in range(Wk):
+                    idhx = hk-pad_height#kernel
+                    idhy = wk-pad_width#kernel
+                    idfx = hi - idhx#image
+                    idfy = wi - idhy#image
+                    val_s = val_s+ kernel[hk,wk]*image_pad[idfx+pad_height,idfy+pad_width]
+            out[hi, wi]= val_s
     ### END YOUR CODE
 
     return out
@@ -56,7 +69,16 @@ def zero_pad(image, pad_height, pad_width):
     out = None
 
     ### YOUR CODE HERE
-    pass
+    H_new = int(H+2*pad_height)
+    W_new = int(W+2*pad_width)
+    out = np.zeros((H_new, W_new))
+    for h in range(H_new):
+        if((h-pad_height>=0) & (h-pad_height <H)):
+            for w in range(W_new):
+                if((w -pad_width>=0) & (w -pad_width< W)):
+                    out[h,w]=image[h-pad_height, w-pad_width]
+                    
+            
     ### END YOUR CODE
     return out
 
@@ -85,7 +107,15 @@ def conv_fast(image, kernel):
     out = np.zeros((Hi, Wi))
 
     ### YOUR CODE HERE
-    pass
+    pad_height=int(np.ceil((Hk-1)/2))
+    pad_width=int(np.ceil((Wk-1)/2))
+    image_pad = zero_pad(image,pad_height,pad_width)
+    
+    arr_h = np.flip(np.flip(kernel, axis=0),axis=1)    
+    for hi in range(Hi):
+        for(wi) in range(Wi):
+            arr_f = image_pad[hi:hi+Hk, wi:wi+Wk]
+            out[hi,wi] = np.sum(arr_f*arr_h)
     ### END YOUR CODE
 
     return out
@@ -124,7 +154,22 @@ def cross_correlation(f, g):
 
     out = None
     ### YOUR CODE HERE
-    pass
+    image=f
+    kernel=g
+    Hi, Wi = image.shape
+    Hk, Wk = kernel.shape
+    out = np.zeros((Hi, Wi))
+
+    ### YOUR CODE HERE
+    pad_height=int(np.ceil((Hk-1)/2))
+    pad_width=int(np.ceil((Wk-1)/2))
+    image_pad = zero_pad(image,pad_height,pad_width)
+    
+    arr_h = kernel    
+    for hi in range(Hi):
+        for(wi) in range(Wi):
+            arr_f = image_pad[hi:hi+Hk, wi:wi+Wk]
+            out[hi,wi] = np.sum(arr_f*arr_h)/(np.sqrt(np.sum(arr_f*arr_f))*np.sqrt(np.sum(arr_h*arr_h)))
     ### END YOUR CODE
 
     return out
@@ -145,9 +190,23 @@ def zero_mean_cross_correlation(f, g):
     """
 
     out = None
+    image=f
+    kernel=g
+    Hi, Wi = image.shape
+    Hk, Wk = kernel.shape
+    out = np.zeros((Hi, Wi))
+
     ### YOUR CODE HERE
-    pass
-    ### END YOUR CODE
+    pad_height=int(np.ceil((Hk-1)/2))
+    pad_width=int(np.ceil((Wk-1)/2))
+    image_pad = zero_pad(image,pad_height,pad_width)
+    
+    arr_h = kernel - np.mean(kernel)   
+    for hi in range(Hi):
+        for(wi) in range(Wi):
+            arr_f = image_pad[hi:hi+Hk, wi:wi+Wk]
+            arr_f = arr_f - np.mean(arr_f)
+            out[hi,wi] = np.sum(arr_f*arr_h)/(np.sqrt(np.sum(arr_f*arr_f))*np.sqrt(np.sum(arr_h*arr_h)))
 
     return out
 
@@ -169,8 +228,22 @@ def normalized_cross_correlation(f, g):
     """
 
     out = None
+    image=f
+    kernel=g
+    Hi, Wi = image.shape
+    Hk, Wk = kernel.shape
+    out = np.zeros((Hi, Wi))
+
     ### YOUR CODE HERE
-    pass
-    ### END YOUR CODE
+    pad_height=int(np.ceil((Hk-1)/2))
+    pad_width=int(np.ceil((Wk-1)/2))
+    image_pad = zero_pad(image,pad_height,pad_width)
+    
+    arr_h = (kernel - np.mean(kernel))/np.std(kernel)  
+    for hi in range(Hi):
+        for(wi) in range(Wi):
+            arr_f = image_pad[hi:hi+Hk, wi:wi+Wk]
+            arr_f = (arr_f - np.mean(arr_f))/np.std(arr_f)
+            out[hi,wi] = np.sum(arr_f*arr_h)/(np.sqrt(np.sum(arr_f*arr_f))*np.sqrt(np.sum(arr_h*arr_h)))
 
     return out

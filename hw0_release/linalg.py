@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def dot_product(a, b):
     """Implement dot product between the two vectors: a and b.
 
@@ -16,7 +15,7 @@ def dot_product(a, b):
     """
     out = None
     ### YOUR CODE HERE
-    pass
+    out = np.dot(a,b)
     ### END YOUR CODE
     return out
 
@@ -37,7 +36,9 @@ def complicated_matrix_function(M, a, b):
     """
     out = None
     ### YOUR CODE HERE
-    pass
+    t1 = np.dot(a,b)
+    t2 = np.matmul(M, a.transpose())
+    out = t1 * t2
     ### END YOUR CODE
 
     return out

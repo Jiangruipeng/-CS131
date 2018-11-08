@@ -8,6 +8,7 @@ Python Version: 3.5+
 """
 
 import numpy as np
+import queue
 
 def conv(image, kernel):
     """ An implementation of convolution filter.
@@ -36,7 +37,11 @@ def conv(image, kernel):
     padded = np.pad(image, pad_width, mode='edge')
 
     ### YOUR CODE HERE
-    pass
+    arr_k=np.flip(np.flip(kernel,axis=0),axis=1)
+    for hi in range(Hi):
+        for wi in range(Wi):
+            arr_i=padded[hi:hi+Hk,wi:wi+Wk]
+            out[hi, wi]=np.sum(arr_i*arr_k)
     ### END YOUR CODE
 
     return out
@@ -61,7 +66,11 @@ def gaussian_kernel(size, sigma):
     kernel = np.zeros((size, size))
 
     ### YOUR CODE HERE
-    pass
+    k=int((size-1)/2)
+    for i in range(size):
+        for j in range(size):
+            kernel[i,j]=1/(2*np.pi*sigma*sigma)*np.exp(-((i-k)*(i-k)+(j-k)*(j-k))/(2*sigma*sigma))
+
     ### END YOUR CODE
 
     return kernel
@@ -81,7 +90,13 @@ def partial_x(img):
     out = None
 
     ### YOUR CODE HERE
-    pass
+    kernel = np.array(
+        [[ 0, 0, 0],
+         [ 1, 0, -1],
+         [ 0, 0, 0]]
+    )  
+    kernel = kernel/2
+    out = conv(img,kernel)
     ### END YOUR CODE
 
     return out
@@ -101,8 +116,13 @@ def partial_y(img):
     out = None
 
     ### YOUR CODE HERE
-    pass
-    ### END YOUR CODE
+    kernel = np.array(
+        [[ 0, 1, 0],
+         [ 0, 0, 0],
+         [ 0, -1, 0]]
+    )  
+    kernel = kernel/2    
+    out = conv(img,kernel)    ### END YOUR CODE
 
     return out
 
@@ -125,7 +145,10 @@ def gradient(img):
     theta = np.zeros(img.shape)
 
     ### YOUR CODE HERE
-    pass
+    gx=partial_x(img)
+    gy=partial_y(img)
+    G=np.sqrt(gx*gx+gy*gy)
+    theta=np.arctan2(gy,gx)*180/np.pi + 180
     ### END YOUR CODE
 
     return G, theta
@@ -149,9 +172,30 @@ def non_maximum_suppression(G, theta):
 
     # Round the gradient direction to the nearest 45 degrees
     theta = np.floor((theta + 22.5) / 45) * 45
+    #theta = np.floor((theta) / 45) * 45
+
 
     ### BEGIN YOUR CODE
-    pass
+    for x in range(W):
+        for y in range(H):
+            thetaPoint = theta[y,x]
+            g=G[y,x]
+            c1=c2=0;
+            if(thetaPoint==0 or thetaPoint == 180):
+                #compare
+                if x-1>=0: c1=G[y,x-1]
+                if x+1<W: c2=G[y,x+1] 
+            if(thetaPoint==45 or thetaPoint == 225): 
+                if (y+1<H and x+1<W): c1=G[y+1,x+1] 
+                if (y-1>=0 and x-1>=0): c2=G[y-1,x-1] 
+            if(thetaPoint==90 or thetaPoint == 270):  
+                if ((y-1)>=0): c1=G[y-1,x] 
+                if (y+1<H):  c2=G[y+1,x]                      
+            if(thetaPoint==135 or thetaPoint == 315):    
+                if (y-1>=0 and x+1<W): c1=G[y-1,x+1] 
+                if (y+1<H and x-1>=0): c2=G[y+1,x-1]              
+            if (g>c1 and g>c2): out[y,x]=g 
+        
     ### END YOUR CODE
 
     return out
@@ -176,7 +220,14 @@ def double_thresholding(img, high, low):
     weak_edges = np.zeros(img.shape, dtype=np.bool)
 
     ### YOUR CODE HERE
-    pass
+    H, W = img.shape
+    for y in range(H):
+        for x in range(W):
+            if(img[y,x] > high):
+                strong_edges[y,x]=1
+            elif(img[y,x] > low):
+                weak_edges[y,x]=1
+                
     ### END YOUR CODE
 
     return strong_edges, weak_edges
@@ -209,6 +260,8 @@ def get_neighbors(y, x, H, W):
 
     return neighbors
 
+
+
 def link_edges(strong_edges, weak_edges):
     """ Find weak edges connected to strong edges and link them.
 
@@ -235,7 +288,36 @@ def link_edges(strong_edges, weak_edges):
     edges = np.copy(strong_edges)
 
     ### YOUR CODE HERE
-    pass
+
+    # an empty set to maintain visited nodes
+    closed_set = set()
+    
+    
+    for i in range (H):
+        for j in range(W):
+            if(strong_edges[i,j] ==1):
+                # a FIFO open_set
+                open_set = []
+                
+                
+                #perform breadth first search
+                root = (i,j)
+                open_set.append(root)
+                # For each node on the current level expand and process, if no children 
+                # (leaf) then unwind
+                while len(open_set)>0:
+                    subtree_root = open_set.pop(0)
+                     # For each child of the current tree process
+                    for child in get_neighbors(subtree_root[0],subtree_root[1],H,W):
+                      # The node has already been processed, so skip over it
+                      if child in closed_set:
+                        continue
+                      # The child is not enqueued to be processed, so enqueue this level of
+                      # children to be expanded
+                      if child not in open_set and weak_edges[child] ==1:
+                        open_set.append(child)              # enqueue these nodes
+                    closed_set.add(subtree_root)
+                    edges[subtree_root]=1
     ### END YOUR CODE
 
     return edges
@@ -253,7 +335,13 @@ def canny(img, kernel_size=5, sigma=1.4, high=20, low=15):
         edge: numpy array of shape(H, W).
     """
     ### YOUR CODE HERE
-    pass
+    kernel = gaussian_kernel(kernel_size, sigma)
+    smoothed = conv(img, kernel)
+    G, theta = gradient(smoothed)
+    nms = non_maximum_suppression(G, theta)
+    strong_edges, weak_edges = double_thresholding(nms, high, low)
+    edge = link_edges(strong_edges, weak_edges)
+
     ### END YOUR CODE
 
     return edge
@@ -275,7 +363,7 @@ def hough_transform(img):
         thetas: numpy array of shape (n, ).
     """
     # Set rho and theta ranges
-    W, H = img.shape
+    H, W = img.shape
     diag_len = int(np.ceil(np.sqrt(W * W + H * H)))
     rhos = np.linspace(-diag_len, diag_len, diag_len * 2.0 + 1)
     thetas = np.deg2rad(np.arange(-90.0, 90.0))
@@ -293,7 +381,14 @@ def hough_transform(img):
     # Find rho corresponding to values in thetas
     # and increment the accumulator in the corresponding coordiate.
     ### YOUR CODE HERE
-    pass
+    rhosList = list(rhos)
+    for i in range(H):
+        for j in range(W):
+            if img[i,j]==1:
+                rho = np.ceil(j * cos_t + i * sin_t);
+                for idx, val in enumerate(rho):
+                    accumulator[rhosList.index(val),idx] += 1
+                    
     ### END YOUR CODE
 
     return accumulator, rhos, thetas

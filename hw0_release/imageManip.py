@@ -20,7 +20,7 @@ def load(image_path):
 
     ### YOUR CODE HERE
     # Use skimage io.imread
-    pass
+    out = io.imread(image_path)
     ### END YOUR CODE
 
     # Let's convert the image to be between the correct range.
@@ -45,7 +45,7 @@ def dim_image(image):
     out = None
 
     ### YOUR CODE HERE
-    pass
+    out = 0.5* np.sqrt(image)
     ### END YOUR CODE
 
     return out
@@ -66,7 +66,7 @@ def convert_to_grey_scale(image):
     out = None
 
     ### YOUR CODE HERE
-    pass
+    out = color.rgb2grey(image)
     ### END YOUR CODE
 
     return out
@@ -86,9 +86,23 @@ def rgb_exclusion(image, channel):
     out = None
 
     ### YOUR CODE HERE
-    pass
-    ### END YOUR CODE
+    image_height = image.shape[0]
+    image_width = image.shape[1]
+    r = image[:,:,0].reshape(image_height,image_width,1)
+    g = image[:,:,1].reshape(image_height,image_width,1)
+    b = image[:,:,2].reshape(image_height,image_width,1)
+    
 
+    zero_data = np.zeros(image_height*image_width).reshape(image_height,image_width,1)
+
+    #out = image.copy()
+    if(channel == "R"):
+        out = np.concatenate((zero_data,g,b),axis=2).reshape(image_height,image_width,3)
+    elif(channel == "G"):
+        out = np.concatenate((r,zero_data,b),axis=2).reshape(image_height,image_width,3)
+    elif(channel == "B"):
+        out = np.concatenate((r,g,zero_data),axis=2).reshape(image_height,image_width,3)
+    ### END YOUR CODE
     return out
 
 
@@ -104,10 +118,31 @@ def lab_decomposition(image, channel):
     """
 
     lab = color.rgb2lab(image)
+    image_height = image.shape[0]
+    image_width = image.shape[1]
+    zero_data = np.zeros(image_height*image_width).reshape(image_height,image_width,1)
+
+
+    l = lab[:,:,0].reshape(image_height,image_width,1)
+    a = lab[:,:,1].reshape(image_height,image_width,1)
+    b = lab[:,:,2].reshape(image_height,image_width,1)
+    
     out = None
 
     ### YOUR CODE HERE
-    pass
+    if(channel == "L"):
+        out = np.concatenate((l,zero_data,zero_data),axis=2).reshape(image_height,image_width,3)
+        #out=color.lab2rgb(lab)
+        out = color.lab2rgb(out)
+    elif(channel == "A"):
+        out = np.concatenate((zero_data,a,zero_data),axis=2).reshape(image_height,image_width,3)
+        out = color.lab2rgb(out)
+    elif(channel == "B"):
+        out = np.concatenate((zero_data,zero_data,b),axis=2).reshape(image_height,image_width,3)
+        out = color.lab2rgb(out)
+
+
+
     ### END YOUR CODE
 
     return out
@@ -125,11 +160,28 @@ def hsv_decomposition(image, channel='H'):
     """
 
     hsv = color.rgb2hsv(image)
+    image_height = image.shape[0]
+    image_width = image.shape[1]
+    zero_data = np.zeros(image_height*image_width).reshape(image_height,image_width,1)
+
+
+    h = hsv[:,:,0].reshape(image_height,image_width,1)
+    s = hsv[:,:,1].reshape(image_height,image_width,1)
+    v = hsv[:,:,2].reshape(image_height,image_width,1)
+    
     out = None
 
     ### YOUR CODE HERE
-    pass
-    ### END YOUR CODE
+    if(channel == "H"):
+        out = np.concatenate((h,zero_data,zero_data),axis=2).reshape(image_height,image_width,3)
+        #out=color.lab2rgb(lab)
+        out = color.hsv2rgb(out)
+    elif(channel == "S"):
+        out = np.concatenate((zero_data,s,zero_data),axis=2).reshape(image_height,image_width,3)
+        out = color.hsv2rgb(out)
+    elif(channel == "V"):
+        out = np.concatenate((zero_data,zero_data,v),axis=2).reshape(image_height,image_width,3)
+        out = color.hsv2rgb(out)
 
     return out
 
@@ -154,7 +206,16 @@ def mix_images(image1, image2, channel1, channel2):
 
     out = None
     ### YOUR CODE HERE
-    pass
+    image_width = image1.shape[1]
+
+    
+    part1 = rgb_exclusion(image1, channel1)
+    part2 = rgb_exclusion(image2, channel2)
+
+    part1=part1[:, 0:int(image_width/2), :]
+    part2=part2[:, int(image_width/2):, :]
+    out = np.concatenate((part1,part2),axis=1)
+
     ### END YOUR CODE
 
     return out
