@@ -44,7 +44,19 @@ def harris_corners(img, window_size=3, k=0.04):
     dy = filters.sobel_h(img)
 
     ### YOUR CODE HERE
-    pass
+    for y in range(H):
+        for x in range(W):
+            M=np.zeros((2,2))
+            for i in (y-1, y, y+1):
+                for j in (x-1, x, x+1):
+                    if i >= 0 and i < H and j >= 0 and j < W:
+                        if (i == y and j == x):
+                            continue
+                        u=np.array([dx[i,j], dy[i,j]]).reshape(2,1)
+                        M=M+u*u.T
+    #R=Det(M)-k(Trace(M)^2).        
+            R=np.linalg.det(M)-k*np.power(np.matrix.trace(M),2)
+            response[y,x]=R
     ### END YOUR CODE
 
     return response
@@ -70,7 +82,14 @@ def simple_descriptor(patch):
     """
     feature = []
     ### YOUR CODE HERE
-    pass
+    h,w = patch.shape
+    feature=patch.reshape(h*w,)
+    #print(h,w)
+    mean = np.mean(feature)
+    std = np.std(feature)
+    if (std==0):
+        std=1
+    feature = (feature -mean)/std
     ### END YOUR CODE
     return feature
 
@@ -120,12 +139,30 @@ def match_descriptors(desc1, desc2, threshold=0.5):
     matches = []
 
     N = desc1.shape[0]
+#     print(desc1.shape)
+#     print(desc2.shape)
     dists = cdist(desc1, desc2)
+#     print(dists.shape)
+
 
     ### YOUR CODE HERE
-    pass
-    ### END YOUR CODE
+    #N
+    #idx1 = np.arange(N).reshape(N,1)
+    #data=[]
+    #data = np.concatenate((idx1, idx2, data), axis=1)
 
+    sorted_data=np.sort(dists,axis=1)
+    ratio = sorted_data[:,0]/sorted_data[:,1]
+    idx2 = np.argmin(dists, axis=1)
+    #print(ratio)
+    
+    for i in range(N):
+        #closest = dists[i,idx2[i]]
+        
+        if(ratio[i] < threshold):
+            matches.append([i,idx2[i]]) 
+    ### END YOUR CODE
+    matches=np.asarray(matches)
     return matches
 
 
@@ -149,7 +186,8 @@ def fit_affine_matrix(p1, p2):
     p2 = pad(p2)
 
     ### YOUR CODE HERE
-    pass
+    H = np.linalg.lstsq(p2, p1)[0]
+    print(H)
     ### END YOUR CODE
 
     # Sometimes numerical issues cause least-squares to produce the last
