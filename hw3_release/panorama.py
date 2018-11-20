@@ -186,8 +186,9 @@ def fit_affine_matrix(p1, p2):
     p2 = pad(p2)
 
     ### YOUR CODE HERE
-    H = np.linalg.lstsq(p2, p1)[0]
-    print(H)
+    ret= np.linalg.lstsq(p2, p1)
+    H=ret[0]
+    print(ret)
     ### END YOUR CODE
 
     # Sometimes numerical issues cause least-squares to produce the last
@@ -234,7 +235,27 @@ def ransac(keypoints1, keypoints2, matches, n_iters=200, threshold=20):
 
     # RANSAC iteration start
     ### YOUR CODE HERE
-    pass
+    for i in range(n_iters):
+        #1. Select random set of matches
+        sample_idx=np.random.randint(0, high=N-1, size=n_samples)
+        #2. Compute affine transformation matrix
+        H= np.linalg.lstsq(matched2[sample_idx], matched1[sample_idx])[0]
+        #3. Compute inliers      
+        fit=np.dot(matched2,H)
+        diff=np.power((fit[:,0]-matched1[:,0]),2)+np.power((fit[:,1]-matched1[:,1]),2)
+        inliers=[]
+        for j in range(N):
+            if(diff[j]<threshold*threshold):
+               inliers.append(j) 
+        inliers=np.asarray(inliers)
+        #print(inliers.shape)
+        #4. Keep the largest set of inliers        
+        if (inliers.shape[0]>n_inliers):
+            max_inliers=inliers
+            n_inliers=inliers.shape[0]
+
+    #5. Re-compute least-squares estimate on all of the inliers
+    H= np.linalg.lstsq(matched2[max_inliers], matched1[max_inliers])[0]
     ### END YOUR CODE
     print(H)
     return H, orig_matches[max_inliers]
@@ -286,7 +307,27 @@ def hog_descriptor(patch, pixels_per_cell=(8,8)):
 
     # Compute histogram per cell
     ### YOUR CODE HERE
-    pass
+    #2. Compute gradient histograms for each cell
+    for i in range(rows):
+        for j in range(cols):
+            histogram = np.zeros(n_bins)
+            gcell = G_cells[j,i]
+            theta_cell = theta_cells[j,i]
+            for m in range(pixels_per_cell[0]):
+                for n in range(pixels_per_cell[1]):
+                    #print(theta_cell[m,n]//20)
+                    histogram[abs(int(theta_cell[m,n]-0.001))//degrees_per_bin]+=gcell[m,n]
+            cells[j,i]=histogram
+            #print(histogram)
+    #     3. Flatten block of histograms into a 1D feature vector
+    #         Here, we treat the entire patch of histograms as our block
+    block= cells.reshape(rows*cols*n_bins,)
+    #print(block)
+    
+    #4. Normalize flattened block
+    #    Normalization makes the descriptor more robust to lighting variations
+    block= (block-np.mean(block))/np.std(block)
+    
     ### YOUR CODE HERE
 
     return block
